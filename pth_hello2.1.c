@@ -19,23 +19,26 @@
 #include <stdlib.h>
 #include <pthread.h> 
 #include <unistd.h>
+#include <semaphore.h>
 
 /* Global variable:  accessible to all threads */
-int thread_count;  
+int thread_count ;  
+sem_t semaphore; 
 
 void *Hello(void* rank);  /* Thread function */
 
 /*--------------------------------------------------------------------*/
 int main(int argc, char* argv[]) {
    long       thread;  /* Use long in case of a 64-bit system */
-   pthread_t* thread_handles; 
-   
+   pthread_t* thread_handles;  
+   sem_init(&semaphore, 0, 4);
    thread_count = 40; 
 
-   thread_handles = malloc (thread_count*sizeof(pthread_t)); 
-
-   for (thread = 0; thread < thread_count; thread++)  
-      pthread_create(&thread_handles[thread], NULL, Hello, (void*) thread);  
+   thread_handles = malloc (thread_count*sizeof(pthread_t));  
+   for (thread = 0; thread < thread_count; thread++) { 
+          sem_wait(&semaphore); 
+          pthread_create(&thread_handles[thread], NULL, Hello, (void*) thread); 
+   } 
    
    
    printf("Hello from the main thread\n");
@@ -45,6 +48,7 @@ int main(int argc, char* argv[]) {
    }
    
    free(thread_handles);
+   sem_destroy(&semaphore);
    printf("Main thread exit\n");
    return 0;
 }  /* main */
@@ -55,6 +59,7 @@ void *Hello(void* rank) {
    printf("Hello from thread %ld of %d\n", my_rank, thread_count);
    sleep(4);
    printf("Thread %ld of %d exit!\n", my_rank, thread_count);
+    sem_post(&semaphore);
    return NULL;
 }  /* Hello */
 
